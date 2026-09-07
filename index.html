@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MANGOCAR · 수출 수익 계산기</title>
+<style>
+  :root{
+    --bg:#0B0B0F; --panel:#14141B; --panel2:#1B1B25; --line:#2A2A38;
+    --text:#F2F2F5; --muted:#8B8B9E;
+    --mango:#F7A928; --leaf:#8CC63F; --gold:#E8C36A;
+    --pos:#4ADE80; --neg:#F87171;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    overflow-x:hidden;
+  }
+  .bg-art{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0;}
+  .bg-art::before{content:"";position:absolute;top:-30%;right:-10%;width:820px;height:820px;border-radius:50%;
+    background:radial-gradient(circle,rgba(247,169,40,.10),transparent 62%);}
+  .bg-art::after{content:"";position:absolute;bottom:-40%;left:-15%;width:700px;height:700px;border-radius:50%;
+    background:radial-gradient(circle,rgba(140,198,63,.06),transparent 65%);}
+  .road{position:absolute;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(247,169,40,.14),transparent);}
+  .road:nth-child(1){top:24%}.road:nth-child(2){top:52%}.road:nth-child(3){top:80%}
+
+  .wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:18px 22px 28px;}
+
+  header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
+  .brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;}
+  .ci{display:flex;align-items:center;font-weight:800;font-size:22px;letter-spacing:.5px;color:#fff;user-select:none;}
+  .ci .o{position:relative;display:inline-block;color:var(--mango);}
+  .ci .o::after{content:"";position:absolute;top:-4px;right:-1px;width:8px;height:5px;
+    border-radius:60% 40% 60% 40%;background:var(--leaf);transform:rotate(28deg);}
+  .title{font-size:15px;color:var(--muted);}
+  .title em{font-style:normal;color:var(--mango);font-weight:700;}
+  .tagline{font-size:11px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;}
+
+  .grid{display:grid;grid-template-columns:300px 1fr 1fr;gap:16px;align-items:stretch;}
+  @media(max-width:1000px){.grid{grid-template-columns:1fr 1fr;}}
+  @media(max-width:700px){.grid{grid-template-columns:1fr;}}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;}
+  .card h2{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;
+    display:flex;align-items:center;gap:7px;margin-bottom:14px;}
+  .card h2::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--mango);}
+
+  .field{margin-bottom:12px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px;}
+  .field input,.field select{
+    width:100%;padding:9px 11px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;
+    color:var(--text);font-size:14px;font-variant-numeric:tabular-nums;outline:none;transition:border-color .15s;
+  }
+  .field input:focus,.field select:focus{border-color:var(--mango);}
+  .suffix{position:relative;}
+  .suffix input{padding-right:42px;}
+  .suffix span{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;}
+
+  .rate-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .divider{height:1px;background:var(--line);margin:14px 0;}
+  .money{display:grid;grid-template-columns:1fr 88px;gap:7px;}
+  .money select{font-weight:600;}
+
+  .seg{display:grid;gap:7px;}
+  .seg.c2{grid-template-columns:1fr 1fr;}
+  .seg.c3{grid-template-columns:1fr 1fr 1fr;}
+  .seg button{
+    padding:9px 0;border-radius:9px;border:1px solid var(--line);background:var(--panel2);
+    color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;
+  }
+  .seg button.on{background:rgba(247,169,40,.14);border-color:var(--mango);color:var(--mango);}
+
+  .subcard{
+    border:1px solid var(--line);border-radius:11px;padding:12px;margin-bottom:12px;
+    background:rgba(247,169,40,.03);
+  }
+  .subcard h3{
+    font-size:11px;font-weight:700;color:var(--mango);letter-spacing:.1em;
+    text-transform:uppercase;margin-bottom:10px;
+  }
+  .totalbox{border-top:1px dashed var(--line);padding-top:9px;margin-top:2px;}
+  .totalbox .tlab{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;}
+  .totalbox .tvals{display:flex;gap:6px;flex-wrap:wrap;}
+  .totalbox .tvals span{
+    background:var(--panel2);border:1px solid var(--line);border-radius:7px;
+    padding:4px 8px;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--gold);
+  }
+  .totalbox .tvals span:first-child{color:var(--text);border-color:var(--mango);}
+
+  .result{
+    background:linear-gradient(160deg,#191922,#101017);
+    border:1px solid var(--line);border-radius:14px;padding:20px;
+    display:flex;flex-direction:column;
+  }
+  .result h2{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;
+    display:flex;align-items:center;gap:7px;margin-bottom:14px;}
+  .result h2::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--gold);}
+  .rows{display:grid;gap:9px;margin-bottom:14px;}
+  .rrow{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);}
+  .rrow b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums;}
+  .rrow.refund b{color:var(--gold);}
+  .rrow.cost b{color:var(--neg);}
+  .profit{border-top:1px dashed var(--line);padding-top:12px;margin-top:auto;}
+  .profit .lab{font-size:12px;color:var(--muted);display:block;margin-bottom:2px;}
+  .profit .val{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+  .profit .val.pos{color:var(--pos);}
+  .profit .val.neg{color:var(--neg);}
+  .profit .usd{font-size:12px;color:var(--muted);margin-left:8px;}
+  .margin-line{display:flex;justify-content:space-between;align-items:baseline;margin-top:10px;
+    padding-top:10px;border-top:1px dashed var(--line);}
+  .margin-line .lab{font-size:12px;color:var(--muted);}
+  .margin-line .val{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .margin-line .val.pos{color:var(--pos);}
+  .margin-line .val.neg{color:var(--neg);}
+  .note{margin-top:10px;font-size:11px;color:#5d5d70;line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="bg-art"><div class="road"></div><div class="road"></div><div class="road"></div></div>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="ci">MANG<span class="o">O</span>CAR</div>
+      <div class="title">수출 수익 <em>계산기</em></div>
+    </div>
+    <div class="tagline">Export Profit Console</div>
+  </header>
+
+  <div class="grid">
+
+    <!-- 기본 입력값 -->
+    <div class="card">
+      <h2>기본 입력값</h2>
+      <div class="field">
+        <label>부가세 환급 비율 (%)</label>
+        <div class="rate-row">
+          <div class="suffix"><input type="number" id="rateYS" value="10" step="0.01"><span>영세</span></div>
+          <div class="suffix"><input type="number" id="rateGS" value="9.19" step="0.01"><span>과세</span></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="field suffix">
+        <label>달러 환율 (USD → KRW)</label>
+        <input type="number" id="fxUSD" value="1380" step="0.1"><span style="top:auto;bottom:10px;">₩</span>
+      </div>
+      <div class="field suffix">
+        <label>유로 환율 (EUR → KRW)</label>
+        <input type="number" id="fxEUR" value="1500" step="0.1"><span style="top:auto;bottom:10px;">₩</span>
+      </div>
+      <div class="field suffix">
+        <label>매도비 (만원)</label>
+        <input type="number" id="feeSell" value="44" step="1"><span style="top:auto;bottom:10px;">만원</span>
+      </div>
+      <p class="note">이 값들은 브라우저에 저장되어 새로고침해도 유지됩니다.</p>
+    </div>
+
+    <!-- 차량 대금 -->
+    <div class="card">
+      <h2>차량 대금</h2>
+      <div class="subcard">
+        <h3>차량 구매 금액</h3>
+        <div class="field">
+          <label id="buyLab">차량 대금 (만원)</label>
+          <div class="money">
+            <div class="suffix"><input type="number" id="buyAmt" placeholder="0" min="0"><span id="buyUnit">만원</span></div>
+            <select id="buyCur">
+              <option value="KRW">₩ 원화</option>
+              <option value="USD">$ 달러</option>
+              <option value="EUR">€ 유로</option>
+            </select>
+          </div>
+        </div>
+        <div class="field suffix">
+          <label>할인율</label>
+          <input type="number" id="discRate" placeholder="0" min="0" step="0.1"><span style="top:auto;bottom:10px;">%</span>
+        </div>
+        <div class="totalbox">
+          <span class="tlab" id="tFormula">총 구매금액 = 차량 대금 + 매도비 + 할인</span>
+          <div class="tvals">
+            <span id="tKRW">₩ 0</span><span id="tUSD">$ 0</span><span id="tEUR">€ 0</span>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label id="sellLab">차량 판매 금액</label>
+        <div class="money">
+          <div class="suffix"><input type="number" id="sellAmt" placeholder="0" min="0"><span id="sellUnit" style="display:none;">만원</span></div>
+          <select id="sellCur">
+            <option value="USD">$ 달러</option>
+            <option value="KRW">₩ 원화</option>
+            <option value="EUR">€ 유로</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>잡비</label>
+        <div class="seg" id="miscAmtSeg" style="grid-template-columns:repeat(4,1fr);">
+          <button data-amt="0">0</button>
+          <button data-amt="100" class="on">100</button>
+          <button data-amt="150">150</button>
+          <button data-amt="200">200</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>잡비 통화</label>
+        <div class="seg c2" id="miscCurSeg">
+          <button data-cur="USD" class="on">$ 달러</button>
+          <button data-cur="EUR">€ 유로</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>차량 종류</label>
+        <div class="seg c2" id="typeSeg">
+          <button data-type="YS">영세</button>
+          <button data-type="GS" class="on">과세</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 결과 -->
+    <div class="result">
+      <h2>계산 결과</h2>
+      <div class="rows">
+        <div class="rrow"><span id="oBuyLab">총 구매금액 (대금+매도비+할인)</span><b id="oBuy">₩ 0</b></div>
+        <div class="rrow"><span>판매 금액 (원화 환산)</span><b id="oSell">₩ 0</b></div>
+        <div class="rrow refund"><span id="oRefundLab">부가세 환급 (과세 9.19%)</span><b id="oRefund">₩ 0</b></div>
+        <div class="rrow cost"><span id="oMiscLab">잡비 ($100)</span><b id="oMisc">− ₩ 0</b></div>
+      </div>
+      <div class="profit">
+        <span class="lab">예상 수익 = 판매 − 구매 + 환급 − 잡비</span>
+        <span class="val pos" id="oProfit">₩ 0</span><span class="usd" id="oProfitUsd">≈ $0</span>
+        <div class="margin-line">
+          <span class="lab">수익률 (수익 ÷ 구매 금액)</span>
+          <span class="val pos" id="oMargin">0%</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const typeNames = {YS:'영세', GS:'과세'};
+  const curSym = {USD:'$', EUR:'€'};
+  let vType = 'GS';
+  let miscAmt = 100;
+  let miscCur = 'USD';
+
+  // ---- 기본 입력값 저장/복원 (localStorage) ----
+  const SAVE_KEYS = ['rateYS','rateGS','fxUSD','fxEUR','feeSell'];
+  const STORE = 'mangocar_calc_defaults_v2';
+  function loadDefaults(){
+    try{
+      const saved = JSON.parse(localStorage.getItem(STORE) || '{}');
+      SAVE_KEYS.forEach(k => { if(saved[k] !== undefined) $(k).value = saved[k]; });
+    }catch(e){}
+  }
+  function saveDefaults(){
+    try{
+      const obj = {};
+      SAVE_KEYS.forEach(k => obj[k] = $(k).value);
+      localStorage.setItem(STORE, JSON.stringify(obj));
+    }catch(e){}
+  }
+
+  // ---- 세그먼트 버튼 ----
+  function bindSeg(segId, onPick){
+    document.querySelectorAll('#'+segId+' button').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('#'+segId+' button').forEach(b=>b.classList.remove('on'));
+        btn.classList.add('on');
+        onPick(btn);
+        calc();
+      });
+    });
+  }
+  bindSeg('typeSeg',   b => vType = b.dataset.type);
+  bindSeg('miscAmtSeg',b => miscAmt = parseFloat(b.dataset.amt));
+  bindSeg('miscCurSeg',b => miscCur = b.dataset.cur);
+
+  function toKRW(amount, cur){
+    const usd = parseFloat($('fxUSD').value)||0;
+    const eur = parseFloat($('fxEUR').value)||0;
+    if(cur==='USD') return amount*usd;
+    if(cur==='EUR') return amount*eur;
+    return amount*10000;   // 원화는 만원 단위 입력
+  }
+  const fmtKRW = n => '₩ ' + Math.round(n).toLocaleString('ko-KR');
+
+  // 통화 선택에 따라 만원 단위 표시 전환
+  function syncUnits(){
+    const buyKRW = $('buyCur').value==='KRW';
+    const sellKRW = $('sellCur').value==='KRW';
+    $('buyUnit').style.display = buyKRW ? '' : 'none';
+    $('buyLab').textContent = buyKRW ? '차량 대금 (만원)' : '차량 대금';
+    $('sellUnit').style.display = sellKRW ? '' : 'none';
+    $('sellLab').textContent = sellKRW ? '차량 판매 금액 (만원)' : '차량 판매 금액';
+  }
+
+  function calc(){
+    syncUnits();
+    const carPrice = toKRW(parseFloat($('buyAmt').value)||0, $('buyCur').value);
+    const feeInput = (parseFloat($('feeSell').value)||0) * 10000;   // 만원 단위
+    const fee = vType==='YS' ? 0 : feeInput;   // 영세는 매도비 미포함
+    const discRate = parseFloat($('discRate').value)||0;
+    const discount = carPrice * discRate/100;
+    const buy = carPrice + fee + discount;   // 차량 총 구매금액
+
+    const sell = toKRW(parseFloat($('sellAmt').value)||0, $('sellCur').value);
+    const misc = toKRW(miscAmt, miscCur);
+    const rate = parseFloat($({'YS':'rateYS','GS':'rateGS'}[vType]).value)||0;
+    const refund = carPrice * rate/100;   // 환급은 차량 대금 기준
+    const profit = sell - buy + refund - misc;
+
+    const usd = parseFloat($('fxUSD').value)||0;
+    const eur = parseFloat($('fxEUR').value)||0;
+    $('tKRW').textContent = fmtKRW(buy);
+    $('tUSD').textContent = usd>0 ? '$ ' + Math.round(buy/usd).toLocaleString('en-US') : '$ -';
+    $('tEUR').textContent = eur>0 ? '€ ' + Math.round(buy/eur).toLocaleString('en-US') : '€ -';
+    const formula = vType==='YS' ? '차량 대금 + 할인 (영세: 매도비 제외)' : '차량 대금 + 매도비 + 할인';
+    $('tFormula').textContent = '총 구매금액 = ' + formula;
+    $('oBuyLab').textContent = vType==='YS' ? '총 구매금액 (대금+할인)' : '총 구매금액 (대금+매도비+할인)';
+
+    $('oBuy').textContent = fmtKRW(buy);
+    $('oSell').textContent = fmtKRW(sell);
+    $('oRefundLab').textContent = `부가세 환급 (${typeNames[vType]} ${rate}% · 차량 대금 기준)`;
+    $('oRefund').textContent = fmtKRW(refund);
+    $('oMiscLab').textContent = `잡비 (${curSym[miscCur]}${miscAmt})`;
+    $('oMisc').textContent = '− ' + fmtKRW(misc);
+
+    const pv = $('oProfit');
+    pv.textContent = fmtKRW(profit);
+    pv.classList.toggle('pos', profit>=0);
+    pv.classList.toggle('neg', profit<0);
+
+    $('oProfitUsd').textContent = usd>0 ? '≈ $' + Math.round(profit/usd).toLocaleString('en-US') : '';
+
+    const mv = $('oMargin');
+    const margin = buy>0 ? profit/buy*100 : 0;
+    mv.textContent = margin.toFixed(2) + '%';
+    mv.classList.toggle('pos', margin>=0);
+    mv.classList.toggle('neg', margin<0);
+  }
+
+  document.querySelectorAll('input,select').forEach(el=>{
+    el.addEventListener('input', ()=>{ saveDefaults(); calc(); });
+    el.addEventListener('change', ()=>{ saveDefaults(); calc(); });
+  });
+
+  loadDefaults();
+  calc();
+</script>
+</body>
+</html>
